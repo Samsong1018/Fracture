@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+cd "$(dirname "$0")"
 # Unset GTK env vars that conflict with PyQt6 on Linux (no-op on macOS)
 if [[ "$(uname)" == "Linux" ]]; then
     unset GTK_PATH GTK_EXE_PREFIX GIO_MODULE_DIR GSETTINGS_SCHEMA_DIR LOCPATH

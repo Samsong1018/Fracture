@@ -89,6 +89,7 @@ from .dns_recon import DnsReconTab
 from .sec_headers import SecHeadersTab
 from .mtls import ClientCertStore, ClientCertDialog
 from .preauth import CredentialStore, PreAuthDialog
+from . import system_proxy as _sysproxy
 
 
 class HistorySignal(QThread):
@@ -714,8 +715,8 @@ class ProxyTab(QWidget):
         super().__init__()
         self.proxy = proxy
         self._entries: list[tuple[HttpRequest, HttpResponse | None]] = []
-        # annotations keyed by request id: {"color": str, "note": str}
         self._annotations: dict[int, dict] = {}
+        self._proxy_snapshot = None  # saved state for system proxy restore
         self._setup_ui()
         self._setup_signals()
 
@@ -774,6 +775,24 @@ class ProxyTab(QWidget):
         status_label = QLabel("Proxy: 127.0.0.1:8080")
         status_label.setStyleSheet("color: #4caf50; font-weight: bold;")
 
+        self._sys_proxy_cb = QCheckBox("Set system proxy")
+        if _sysproxy.is_supported():
+            self._sys_proxy_cb.setToolTip(
+                f"Auto-configure the OS to route HTTP/HTTPS through Fracture ({_sysproxy.platform_label()}).\n"
+                "The original setting is restored when you close Fracture or uncheck this box.\n\n"
+                "Firefox note: Firefox manages its own proxy settings. Go to\n"
+                "about:preferences#general → Network Settings → Use system proxy settings."
+            )
+        else:
+            self._sys_proxy_cb.setEnabled(False)
+            self._sys_proxy_cb.setToolTip(
+                "System proxy auto-config is not supported on this desktop environment.\n"
+                "Supported: GNOME (Linux), macOS, Windows.\n"
+                "On KDE, XFCE, i3, etc. set the proxy manually:\n"
+                "  Host: 127.0.0.1   Port: 8080"
+            )
+        self._sys_proxy_cb.toggled.connect(self._toggle_system_proxy)
+
         toolbar.addWidget(self.intercept_btn)
         toolbar.addWidget(self.forward_btn)
         toolbar.addWidget(self.drop_btn)
@@ -784,6 +803,7 @@ class ProxyTab(QWidget):
         toolbar.addWidget(self.mr_btn)
         toolbar.addWidget(self.clear_btn)
         toolbar.addStretch()
+        toolbar.addWidget(self._sys_proxy_cb)
         toolbar.addWidget(status_label)
         layout.addLayout(toolbar)
 
@@ -924,6 +944,28 @@ class ProxyTab(QWidget):
         self.req_view.clear()
         self.resp_view.clear()
         self.note_bar.setText("")
+
+    def _toggle_system_proxy(self, checked: bool):
+        if checked:
+            self._proxy_snapshot = _sysproxy.get_current()
+            ok = _sysproxy.set_proxy("127.0.0.1", 8080)
+            if not ok:
+                self._sys_proxy_cb.blockSignals(True)
+                self._sys_proxy_cb.setChecked(False)
+                self._sys_proxy_cb.blockSignals(False)
+                self._proxy_snapshot = None
+                QMessageBox.warning(
+                    self, "System Proxy",
+                    "Failed to set the system proxy. Check that gsettings / networksetup is accessible."
+                )
+        else:
+            self.restore_system_proxy()
+
+    def restore_system_proxy(self):
+        """Restore the pre-Fracture proxy state. Called on uncheck or window close."""
+        if self._proxy_snapshot is not None:
+            _sysproxy.restore(self._proxy_snapshot)
+            self._proxy_snapshot = None
 
     # ------------------------------------------------------------------
     # History list management
@@ -2024,6 +2066,7 @@ class MainWindow(QMainWindow):
                 if self._dirty:  # save was cancelled
                     ev.ignore()
                     return
+        self.proxy_tab.restore_system_proxy()
         super().closeEvent(ev)
 
     def _offer_last_project(self):
