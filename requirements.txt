@@ -1,0 +1,2 @@
+PyQt6>=6.6.0
+itsdangerous>=2.1.0

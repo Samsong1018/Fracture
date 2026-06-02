@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+unset GTK_PATH GTK_EXE_PREFIX GIO_MODULE_DIR GSETTINGS_SCHEMA_DIR LOCPATH
+LD_LIBRARY_PATH="" python3 main.py
