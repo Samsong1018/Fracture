@@ -384,7 +384,12 @@ class _CrackPanel(QWidget):
 
         lay.addWidget(_lbl("Wordlist Path"))
         wl_row = QHBoxLayout()
-        self._wordlist = _input("/usr/share/wordlists/rockyou.txt")
+        import sys
+        default_wl = (
+            r"C:\Tools\rockyou.txt" if sys.platform == "win32"
+            else "/usr/share/wordlists/rockyou.txt"
+        )
+        self._wordlist = _input(default_wl)
         browse = _btn("Browse")
         browse.clicked.connect(self._browse)
         wl_row.addWidget(self._wordlist, 1)

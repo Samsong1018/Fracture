@@ -471,7 +471,14 @@ class PluginManagerTab(QWidget):
         self._refresh()
 
     def _on_open_dir(self) -> None:
-        subprocess.Popen(["xdg-open", str(self._pm.plugin_dir)])
+        import sys, os
+        path = str(self._pm.plugin_dir)
+        if sys.platform == "win32":
+            os.startfile(path)
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", path])
+        else:
+            subprocess.Popen(["xdg-open", path])
 
     def _on_install_file(self) -> None:
         from PyQt6.QtWidgets import QFileDialog

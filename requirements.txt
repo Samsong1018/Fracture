@@ -1,2 +1,4 @@
 PyQt6>=6.6.0
+cryptography>=41.0.0
 itsdangerous>=2.1.0
+brotli>=1.0.9

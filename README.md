@@ -109,43 +109,79 @@ Everything runs locally. No cloud, no telemetry, no accounts.
 **Requirements:** Python 3.10+, pip
 
 ```bash
-# Clone the repo
 git clone https://github.com/Samsong1018/Fracture.git
 cd Fracture
-
-# Install dependencies
 pip install -r requirements.txt
-
-# (Optional) For Flask cookie cracking
-pip install itsdangerous
 ```
 
-### Linux — HTTPS interception
+### Linux
 
-To intercept HTTPS traffic you need to trust Fracture's CA certificate. On first run, the CA cert is generated at `~/.fracture/certs/ca.crt`.
+```bash
+./run.sh
+```
+
+**HTTPS interception — trust the CA cert** (generated on first run at `~/.fracture/ca.crt`):
 
 ```bash
 # Ubuntu / Debian
-sudo cp ~/.fracture/certs/ca.crt /usr/local/share/ca-certificates/fracture-ca.crt
+sudo cp ~/.fracture/ca.crt /usr/local/share/ca-certificates/fracture-ca.crt
 sudo update-ca-certificates
 
 # Arch
-sudo trust anchor ~/.fracture/certs/ca.crt
-
-# Firefox / Chrome: import via browser cert settings (Settings → Certificates)
+sudo trust anchor ~/.fracture/ca.crt
 ```
+
+Then import the cert into Firefox/Chrome via **Settings → Certificates → Import**.
+
+DNS lookup uses `dig` if installed (`sudo apt install dnsutils`). WHOIS uses `whois` (`sudo apt install whois`). Both fall back gracefully if not present.
+
+---
+
+### macOS
+
+```bash
+./run.sh
+```
+
+**Trust the CA cert:**
+
+```bash
+sudo security add-trusted-cert -d -r trustRoot \
+  -k /Library/Keychains/System.keychain ~/.fracture/ca.crt
+```
+
+`dig` and `whois` are available by default on macOS. No extra tools needed.
+
+---
+
+### Windows
+
+```bat
+run.bat
+```
+
+Or: `python main.py`
+
+**Trust the CA cert:**
+
+1. Run `certmgr.msc`
+2. Navigate to **Trusted Root Certification Authorities → Certificates**
+3. Right-click → **All Tasks → Import**
+4. Select `%USERPROFILE%\.fracture\ca.crt`
+
+> **DNS:** `dig` is not available on Windows by default — the DNS tab falls back to Python's socket module automatically, which covers A/AAAA/PTR lookups. For full record types, install [BIND tools for Windows](https://www.isc.org/bind/).
+>
+> **WHOIS:** Install via `winget install -e --id WiresharkFoundation.Wireshark` (includes whois) or use the online tab as a workaround.
 
 ---
 
 ## Usage
 
-```bash
-# Launch
-./run.sh
-
-# Or directly
-python3 main.py
-```
+| Platform | Command |
+|----------|---------|
+| Linux / macOS | `./run.sh` |
+| Windows | `run.bat` or `python main.py` |
+| Any | `python3 main.py` |
 
 ### Proxy setup
 
@@ -175,7 +211,8 @@ python3 main.py
 ```
 Fracture/
 ├── main.py                    # Entry point
-├── run.sh                     # Launch script (fixes GTK env issues on Linux)
+├── run.sh                     # Launch script — Linux/macOS (fixes GTK env issues)
+├── run.bat                    # Launch script — Windows
 ├── requirements.txt
 └── fracture/
     ├── gui.py                 # Main window — tab wiring
